@@ -6,8 +6,7 @@ import pandas as pd
 from src.config import REQUIRED_DATASET_COLUMNS, SAMPLE_DATASET_PATH
 
 
-class DatasetValidationError(ValueError):
-    """An actionable error suitable for presentation to an application user."""
+from src.data.validation import DatasetValidationError
 
 
 def validate_sample_data(data: pd.DataFrame) -> pd.DataFrame:

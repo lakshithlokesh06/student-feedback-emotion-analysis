@@ -12,3 +12,10 @@ NAVIGATION_LABELS = ("Overview", "Analyze Feedback", "Emotion Dashboard", "About
 FUTURE_EMOTION_CATEGORIES = (
     "joy", "sadness", "anger", "fear", "surprise", "frustration", "satisfaction", "neutral"
 )
+
+MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
+MAX_ROWS = 100_000
+MAX_COLUMNS = 100
+MIN_FEEDBACK_LENGTH = 3
+PREVIEW_ROWS = 50
+CONTEXT_COLUMNS = ("course", "subject", "semester", "rating", "feedback_date")

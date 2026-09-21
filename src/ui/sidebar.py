@@ -11,7 +11,7 @@ def render_sidebar() -> str:
         page = st.radio("Workspace", NAVIGATION_LABELS, label_visibility="collapsed")
         st.divider()
         st.caption("PROJECT STATUS")
-        st.markdown("**Phase 1 · Foundation**")
+        st.markdown("**Phase 2 · Data preparation**")
         st.caption("Explore the sample data and prepare feedback. Emotion classification is planned for a later phase.")
         st.info("Sample records are entirely synthetic.")
     return page

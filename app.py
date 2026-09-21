@@ -11,7 +11,7 @@ from src.ui.sidebar import render_sidebar
 
 def main() -> None:
     st.set_page_config(page_title=APP_TITLE, page_icon="📘", layout="wide")
-    st.caption("STUDENT FEEDBACK LAB / PHASE 1")
+    st.caption("STUDENT FEEDBACK LAB / PHASE 2")
     st.title(APP_TITLE)
     st.write(APP_SUBTITLE)
     st.divider()
@@ -23,7 +23,7 @@ def main() -> None:
         "About": render_about,
     }[page]()
     st.divider()
-    st.caption("Student Feedback Emotion Analysis · Portfolio project · Foundation release")
+    st.caption("Student Feedback Emotion Analysis · Portfolio project · Data preparation release")
 
 
 if __name__ == "__main__":

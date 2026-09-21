@@ -32,10 +32,10 @@ def render_overview() -> None:
         st.markdown("#### Context matters")
         st.write("A student may enjoy practical sessions while feeling anxious about an exam. Future analysis will help surface these nuances, while preserving the original feedback for human interpretation.")
     st.subheader("From feedback to insight")
-    st.caption("Planned workflow · Only data loading and preview are available in Phase 1.")
+    st.caption("Planned workflow · Data intake and feedback preparation are available in Phase 2.")
     steps = (
         ("Student Feedback", "Upload a CSV or explore the synthetic sample.", "Available"),
-        ("Text Preparation", "Validate and prepare written responses.", "Planned"),
+        ("Text Preparation", "Validate and prepare written responses.", "Available"),
         ("Emotion Classification", "Identify emotions with an NLP model.", "Planned"),
         ("Emotion Analytics", "Explore distributions, trends, and course patterns.", "Planned"),
         ("Actionable Insights", "Review findings to inform educational improvements.", "Planned"),
