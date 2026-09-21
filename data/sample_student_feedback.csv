@@ -1,0 +1,49 @@
+feedback_id,feedback,course,subject,semester,rating,feedback_date
+FB001,The instructor explains each algorithm clearly and gives us time to ask questions.,Computer Science,Programming,1,5,2026-01-12
+FB002,I spent the whole weekend on the assignment because the instructions kept changing.,Data Science,Statistics,2,2,2026-01-14
+FB003,I still cannot connect the lecture on recursion to the examples in the worksheet.,Engineering,Electronics,3,3,2026-01-16
+FB004,Thank you for staying after class to help me understand the lab exercise.,Business Studies,Management,4,5,2026-01-18
+FB005,I am worried that I will run out of time during the final exam.,Humanities,Communication,1,2,2026-01-20
+FB006,Building a working prototype in the practical session was the highlight of my week.,Environmental Science,Ecology,2,5,2026-01-22
+FB007,The course description promised recent case studies but most examples felt outdated.,Computer Science,Programming,3,2,2026-01-24
+FB008,Three major deadlines in the same week made it difficult to keep up.,Data Science,Statistics,4,2,2026-01-26
+FB009,The group discussion helped me see a problem from a completely new perspective.,Engineering,Electronics,1,5,2026-01-28
+FB010,Please publish the weekly reading list before Monday morning.,Business Studies,Management,2,3,2026-01-30
+FB011,The worked examples made a difficult topic much easier to follow.,Humanities,Communication,3,5,2026-02-01
+FB012,The submission portal rejected my file repeatedly and I could not get any help.,Environmental Science,Ecology,4,1,2026-02-03
+FB013,I need another explanation of how to choose the right statistical test.,Computer Science,Programming,1,3,2026-02-05
+FB014,The feedback on my report was specific and helped me improve the next draft.,Data Science,Statistics,2,5,2026-02-07
+FB015,Thinking about the oral presentation makes it hard for me to focus on preparing.,Engineering,Electronics,3,2,2026-02-09
+FB016,I cannot wait to try the new equipment in next week's workshop.,Business Studies,Management,4,5,2026-02-11
+FB017,I expected more hands-on practice instead of slides being read aloud.,Humanities,Communication,1,2,2026-02-13
+FB018,The required readings are longer than I can manage alongside the weekly projects.,Environmental Science,Ecology,2,2,2026-02-15
+FB019,Working with classmates on the case study made the lesson memorable.,Computer Science,Programming,3,4,2026-02-17
+FB020,It would help to include page numbers in the reading schedule.,Data Science,Statistics,4,3,2026-02-19
+FB021,The instructor checks our understanding before moving to a new topic.,Engineering,Electronics,1,5,2026-02-21
+FB022,I am frustrated that the marking criteria were shared only after submission.,Business Studies,Management,2,1,2026-02-23
+FB023,The notation changed between the lecture and tutorial and I lost track.,Humanities,Communication,3,2,2026-02-25
+FB024,I appreciate how respectfully the tutor responds even to basic questions.,Environmental Science,Ecology,4,5,2026-02-27
+FB025,The surprise quiz left me nervous about what will count toward the final grade.,Computer Science,Programming,1,2,2026-03-01
+FB026,Seeing our code control a real device was unexpectedly exciting.,Data Science,Statistics,2,5,2026-03-03
+FB027,I felt let down when the guest lecture was cancelled without a replacement.,Engineering,Electronics,3,2,2026-03-05
+FB028,There are so many small assessments that I have little time to review mistakes.,Business Studies,Management,4,2,2026-03-07
+FB029,I finally solved a problem on my own after using the practice exercises.,Humanities,Communication,1,5,2026-03-09
+FB030,Could the tutorial recording links be grouped by week?,Environmental Science,Ecology,2,3,2026-03-11
+FB031,The balance between theory and examples works well for my learning.,Computer Science,Programming,3,4,2026-03-13
+FB032,It feels unfair that different tutorial groups received different deadline information.,Data Science,Statistics,4,1,2026-03-15
+FB033,I can follow the solution in class but do not know where to start independently.,Engineering,Electronics,1,3,2026-03-17
+FB034,The extra revision session made me feel more prepared for the assessment.,Business Studies,Management,2,4,2026-03-19
+FB035,I am anxious about the practical test because we have had limited equipment access.,Humanities,Communication,3,2,2026-03-21
+FB036,The field activity helped me understand why the classroom concepts matter.,Environmental Science,Ecology,4,5,2026-03-23
+FB037,I was disappointed that the optional topics I enrolled for were not covered.,Computer Science,Programming,1,2,2026-03-25
+FB038,The pace has become exhausting since the number of weekly tasks doubled.,Data Science,Statistics,2,1,2026-03-27
+FB039,I enjoyed explaining our findings to the class and hearing their questions.,Engineering,Electronics,3,5,2026-03-29
+FB040,Please add a short summary at the end of each lecture.,Business Studies,Management,4,3,2026-03-31
+FB041,"The lab was enjoyable, although the report deadline felt too close.",Humanities,Communication,1,4,2026-04-02
+FB042,I was surprised by how useful the peer review comments turned out to be.,Environmental Science,Ecology,2,4,2026-04-04
+FB043,I feel discouraged after getting the same low mark without an explanation.,Computer Science,Programming,3,2,2026-04-06
+FB044,The course is running as described in the syllabus so far.,Data Science,Statistics,4,3,2026-04-08
+FB045,I like the subject but the fast lectures leave me confused by the end.,Engineering,Electronics,1,3,2026-04-10
+FB046,The cancelled lab was upsetting because I had prepared for it all week.,Business Studies,Management,2,2,2026-04-12
+FB047,Office hours are at the same time as another required class; an alternative would help.,Humanities,Communication,3,3,2026-04-14
+FB048,The final project brought the topics together and made my progress feel worthwhile.,Environmental Science,Ecology,4,5,2026-04-16
