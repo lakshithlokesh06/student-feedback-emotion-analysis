@@ -1,3 +1,5 @@
+from unittest.mock import patch
+from src.emotion.labels import EmotionError
 from streamlit.testing.v1 import AppTest
 
 from src.config import NAVIGATION_LABELS, PROJECT_ROOT
@@ -12,7 +14,8 @@ def test_navigation_and_analysis_placeholder():
         assert not app.exception
         if page == 'Analyze Feedback':
             assert len(app.dataframe[0].value) == 48
-            app.button[0].click().run()
+            with patch('src.ui.analysis.get_model', side_effect=EmotionError('Model unavailable for this error-path test.')):
+                app.button[0].click().run()
             assert any('No predictions' in item.value for item in app.info)
             app.selectbox[0].select('rating').run()
             assert app.button[0].disabled

@@ -1,6 +1,6 @@
 import streamlit as st
 
-from src.config import FUTURE_EMOTION_CATEGORIES
+from src.ui.results import render_model_info
 
 
 def render_about() -> None:
@@ -9,10 +9,9 @@ def render_about() -> None:
     with st.container(border=True):
         st.markdown("#### Educational applications")
         st.write("Potential applications include understanding responses to teaching methods, exploring workload concerns, and identifying feedback that deserves closer review. Predictions will need context and human judgment; written feedback alone cannot establish a student's mental state.")
-    st.markdown("#### Current status · Phase 2")
-    st.write("The application includes validated CSV intake, original and prepared previews, feedback quality summaries, optional context mapping, safe date and rating conversion, and lightweight dataset profiling. Dashboard areas remain placeholders. Emotion classification is not implemented yet.")
+    st.markdown("#### Current status · Phase 3")
+    st.write("The application includes validated CSV intake, original and prepared previews, feedback quality summaries, optional context mapping, safe date and rating conversion, and lightweight dataset profiling. Usable feedback can now be classified locally with a pretrained English transformer. The dashboard shows real emotion and confidence distributions, and results can be exported as CSV.")
     st.markdown("#### Planned NLP capabilities")
-    st.markdown("- Transformer-based emotion classification using Hugging Face\n- Model evaluation and transparent reporting of limitations\n- Emotion distributions, temporal trends, and course-level exploration")
-    st.caption("INITIAL CATEGORY CONFIGURATION · SUBJECT TO MODEL EVALUATION")
-    st.write(" · ".join(FUTURE_EMOTION_CATEGORIES))
+    st.markdown("- Model evaluation and transparent reporting of limitations\n- Temporal trends and course-level exploration")
+    render_model_info(st.session_state.get("intake", {}).get("analysis").metadata if st.session_state.get("intake", {}).get("analysis") else None)
     st.caption("All bundled feedback is synthetic. No student identities are included.")

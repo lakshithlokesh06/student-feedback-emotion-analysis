@@ -19,3 +19,11 @@ MAX_COLUMNS = 100
 MIN_FEEDBACK_LENGTH = 3
 PREVIEW_ROWS = 50
 CONTEXT_COLUMNS = ("course", "subject", "semester", "rating", "feedback_date")
+
+MODEL_NAME = "j-hartmann/emotion-english-distilroberta-base"
+MODEL_REVISION = "0e1cd914e3d46199ed785853e12b57304e04178b"
+MODEL_CACHE_DIR = PROJECT_ROOT / ".model_cache"
+MODEL_EMOTIONS = ("anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise")
+INFERENCE_BATCH_SIZE = 8
+MAX_MODEL_TOKENS = 512
+LOW_CONFIDENCE_THRESHOLD = 0.50

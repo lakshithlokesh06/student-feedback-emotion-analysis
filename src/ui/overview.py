@@ -1,6 +1,7 @@
 import streamlit as st
 
-from src.config import FUTURE_EMOTION_CATEGORIES
+from src.config import MODEL_EMOTIONS
+from src.ui.results import render_summary
 from src.data.sample_data import DatasetValidationError, load_sample_data
 
 
@@ -12,17 +13,19 @@ def render_overview() -> None:
     except DatasetValidationError as exc:
         total = "Unavailable"
         st.warning(str(exc))
-    metrics = (
-        ("Total Feedback", total, "Bundled synthetic sample"),
-        ("Feedback Analyzed", "Not yet analyzed", "Classification arrives in a later phase"),
-        ("Dominant Emotion", "Not yet analyzed", "No predictions have been generated"),
-        ("Emotion Categories", str(len(FUTURE_EMOTION_CATEGORIES)), "Planned categories · configuration only"),
-    )
-    for column, (label, value, detail) in zip(st.columns(4), metrics):
-        with column, st.container(border=True):
-            st.caption(label.upper())
-            st.markdown(f"**{value}**")
-            st.caption(detail)
+    result = st.session_state.get('intake', {}).get('analysis')
+    if result is not None:
+        render_summary(result)
+    else:
+        metrics = (("Total Feedback", total, "Bundled synthetic sample"),
+                   ("Feedback Analyzed", "Not yet analyzed", "Run analysis to see results"),
+                   ("Dominant Emotion", "Not yet analyzed", "No current predictions"),
+                   ("Emotion Categories", str(len(MODEL_EMOTIONS)), "Native model categories"))
+        for column, (label, value, detail) in zip(st.columns(4), metrics):
+            with column, st.container(border=True):
+                st.caption(label.upper())
+                st.markdown(f"**{value}**")
+                st.caption(detail)
     st.divider()
     left, right = st.columns(2)
     with left, st.container(border=True):
@@ -32,12 +35,12 @@ def render_overview() -> None:
         st.markdown("#### Context matters")
         st.write("A student may enjoy practical sessions while feeling anxious about an exam. Future analysis will help surface these nuances, while preserving the original feedback for human interpretation.")
     st.subheader("From feedback to insight")
-    st.caption("Planned workflow · Data intake and feedback preparation are available in Phase 2.")
+    st.caption("Planned workflow · Data preparation, classification, and basic distributions are available in Phase 3.")
     steps = (
         ("Student Feedback", "Upload a CSV or explore the synthetic sample.", "Available"),
         ("Text Preparation", "Validate and prepare written responses.", "Available"),
-        ("Emotion Classification", "Identify emotions with an NLP model.", "Planned"),
-        ("Emotion Analytics", "Explore distributions, trends, and course patterns.", "Planned"),
+        ("Emotion Classification", "Identify emotions with an NLP model.", "Available"),
+        ("Emotion Analytics", "Explore emotion and confidence distributions.", "Available"),
         ("Actionable Insights", "Review findings to inform educational improvements.", "Planned"),
     )
     for index, (title, detail, status) in enumerate(steps, 1):

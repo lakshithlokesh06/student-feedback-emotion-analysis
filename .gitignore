@@ -7,3 +7,5 @@ htmlcov/
 .DS_Store
 .env
 .streamlit/secrets.toml
+.model_cache/
+.install.log

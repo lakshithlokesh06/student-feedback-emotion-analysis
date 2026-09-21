@@ -8,7 +8,11 @@ from src.data.preparation import prepare_feedback
 from src.data.profiling import profile_dataset
 from src.data.sample_data import load_sample_data
 from src.data.validation import DatasetValidationError
-from src.ui.intake_state import reset_dataset
+from src.ui.intake_state import reset_dataset, invalidate_analysis
+from src.ui.model_cache import get_model
+from src.ui.results import render_results
+from src.emotion.classifier import classify_feedback
+from src.emotion.labels import EmotionError
 
 
 def _save_widget(field: str, role: str | None = None) -> None:
@@ -28,8 +32,8 @@ def _selection(label: str, options: list, value, field: str, role: str | None = 
 
 def render_analysis() -> None:
     st.subheader("Prepare your feedback")
-    st.write("Choose a dataset, inspect its quality, and prepare written feedback for future classification.")
-    st.info("Phase 2 prepares data only. Emotion analysis will be implemented in a later phase.")
+    st.write("Choose a dataset, inspect its quality, and prepare written feedback for emotion classification.")
+    st.info("Analyze usable feedback with a pretrained English emotion model. First use downloads the model; inference runs locally on CPU.")
     if 'intake' not in st.session_state:
         st.session_state['intake'] = {'source': 'Sample dataset', 'identity': None,
                                       'uploaded_dataset': None, 'uploaded_identity': None}
@@ -81,6 +85,7 @@ def render_analysis() -> None:
     contexts = state['contexts']
     preparation_key = (state['identity'], feedback, tuple(contexts.items()))
     if state.get('preparation_key') != preparation_key:
+        invalidate_analysis(state)
         state['prepared'] = None
         state['profile'] = profile_dataset(data, contexts)
         state['preparation_key'] = preparation_key
@@ -139,4 +144,23 @@ def render_analysis() -> None:
             st.caption(f'Unique {role} values: {count:,}')
         st.caption('Missing values count nulls. Blank text is reported separately. Uploaded CSV cells retain their original text; no automatic numeric or null-token inference is applied.')
     if st.button('Analyze Feedback', type='primary', disabled=result is None or result.quality['valid'] == 0):
-        st.info('Emotion analysis will be implemented in a later phase. No predictions have been generated or saved.')
+        invalidate_analysis(state)
+        state['analysis_status'] = 'running'
+        progress = st.progress(0.0, text='Loading model and analyzing feedback…')
+        try:
+            with st.spinner('Loading the model and running CPU inference…'):
+                model = get_model()
+                completed = classify_feedback(result, model, progress=progress.progress)
+            state['analysis'] = completed
+            state['analysis_status'] = 'complete'
+        except EmotionError as exc:
+            state['analysis_status'] = 'failed'
+            state['analysis_error'] = str(exc)
+        finally:
+            progress.empty()
+    if state.get('analysis_status') == 'failed':
+        st.error(state['analysis_error'])
+        st.info('No predictions were saved. Correct the issue and click Analyze Feedback to retry.')
+    elif state.get('analysis_status') == 'complete':
+        st.success('Emotion classification complete. Results remain available when navigating.')
+    render_results(state)

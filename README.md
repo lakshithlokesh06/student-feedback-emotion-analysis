@@ -2,7 +2,7 @@
 
 Discover the emotions behind student feedback using Natural Language Processing.
 
-A modular Streamlit portfolio project exploring how written student feedback can help educators understand learning experiences. **Phase 2 delivers data intake, validation, cleaning, and feedback preparation. Emotion classification is not implemented yet.**
+A modular Streamlit portfolio project exploring how written student feedback can help educators understand learning experiences. **Phase 3 adds real pretrained emotion classification, confidence reporting, foundational dashboards, and CSV export.**
 
 ## Problem statement
 
@@ -11,19 +11,19 @@ Ratings and broad sentiment categories can obscure the context in student feedba
 ## Current functionality
 
 - Four pages: Overview, Analyze Feedback, Emotion Dashboard, and About.
-- Real sample row count, planned category count, and explicit “Not yet analyzed” indicators.
+- Real result metrics after analysis and explicit “Not yet analyzed” indicators before it.
 - Synthetic sample loading, UTF-8 CSV upload, preview, and feedback-column selection.
 - Strict CSV validation with bounded file, row, and column sizes.
 - Meaning-preserving feedback cleaning, row statuses, and actual data-quality metrics.
 - Optional context mapping, safe date/rating conversion, and lightweight dataset profiling.
 - Original, prepared, and unusable-row previews; session persistence across navigation.
-- An Analyze Feedback button that explains the future implementation; it never predicts emotions.
-- Empty dashboard sections reserved for future charts and contextual review.
+- Explicit Analyze Feedback action with lazy model loading, batched CPU inference, and progress reporting.
+- Emotion counts/percentages, confidence distribution, dominant emotion, filtering, and CSV export.
 - Reusable sample validation and pytest coverage, including Streamlit navigation.
 
 ## Planned features
 
-Hugging Face / transformer-based emotion classification, model evaluation, emotion distributions, trends, course comparisons, recurring patterns, and feedback requiring closer review. The initial categories are joy, sadness, anger, fear, surprise, frustration, satisfaction, and neutral. These are configuration placeholders, subject to the selected model and evaluation.
+Domain-specific model evaluation, time trends, course comparisons, recurring patterns, and feedback requiring contextual review. Frustration and satisfaction remain future category goals, not current predictions.
 
 ## Architecture
 
@@ -42,12 +42,19 @@ student-feedback-emotion-analysis/
 │   │   ├── validation.py
 │   │   ├── preparation.py
 │   │   └── profiling.py
+│   ├── emotion/
+│   │   ├── __init__.py
+│   │   ├── classifier.py
+│   │   ├── labels.py
+│   │   └── model_loader.py
 │   ├── ui/
 │   │   ├── __init__.py
 │   │   ├── sidebar.py
 │   │   ├── overview.py
 │   │   ├── analysis.py
 │   │   ├── intake_state.py
+│   │   ├── model_cache.py
+│   │   ├── results.py
 │   │   ├── dashboard.py
 │   │   └── about.py
 │   └── utils/
@@ -57,7 +64,8 @@ student-feedback-emotion-analysis/
 │   ├── test_sample_data.py
 │   ├── test_app.py
 │   ├── test_intake.py
-│   └── test_intake_ui.py
+│   ├── test_intake_ui.py
+│   └── test_emotion.py
 ├── data/
 │   └── sample_student_feedback.csv
 ├── requirements.txt
@@ -66,11 +74,11 @@ student-feedback-emotion-analysis/
 └── README.md
 ```
 
-`app.py` handles routing; page rendering lives in `src/ui`. `src/data` is independent of Streamlit and raises `DatasetValidationError` for expected data problems, which the UI displays. Constants and paths live in `src/config.py`; bundled paths resolve relative to the project rather than the current working directory. `loader.py` bounds and parses uploads, `validation.py` provides shared validation, `preparation.py` produces an independent prepared frame and quality counts, and `profiling.py` summarizes input data. `ui/intake_state.py` handles session transitions. Future inference can be added under `src` without mixing model logic into presentation code. No unused model abstraction or transformer dependency is introduced in this phase.
+`app.py` handles routing; page rendering lives in `src/ui`. `src/data` is independent of Streamlit and raises `DatasetValidationError` for expected data problems, which the UI displays. Constants and paths live in `src/config.py`; bundled paths resolve relative to the project rather than the current working directory. `loader.py` bounds and parses uploads, `validation.py` provides shared validation, `preparation.py` produces an independent prepared frame and quality counts, and `profiling.py` summarizes input data. `ui/intake_state.py` handles session transitions. `src/emotion` owns model loading, metadata-driven labels, batched classification, summaries, and flat CSV export. Streamlit resource caching stays in `ui/model_cache.py`; model logic does not depend on Streamlit.
 
 ## Technology stack
 
-Python and Streamlit power the application; pandas handles CSV data. NumPy, Plotly, and scikit-learn are included as the requested foundation for later numerical analysis, visualization, and evaluation; no charts or models use them yet. pytest is a development dependency. Native Streamlit containers, columns, and a restrained theme provide the layout without custom CSS.
+Python and Streamlit power the application; pandas handles CSV data. NumPy supports preparation and Plotly powers result charts. Transformers and PyTorch provide pretrained CPU inference. Scikit-learn remains available for future evaluation. pytest is a development dependency. Native Streamlit containers, columns, and a restrained theme provide the layout without custom CSS.
 
 ## Local installation
 
@@ -101,7 +109,16 @@ Optional server smoke test:
 streamlit run app.py --server.headless=true --server.address=127.0.0.1
 ```
 
-In another terminal, `curl --fail http://127.0.0.1:8501/_stcore/health` should return `ok`. Stop the server with Ctrl+C. Automated UI tests also render every page and check the placeholder button and unusable-column state.
+In another terminal, `curl --fail http://127.0.0.1:8501/_stcore/health` should return `ok`. Stop the server with Ctrl+C. Automated UI tests render every page, exercise successful inference with an explicitly mocked model, cover loading failures and invalidation, and check unusable-column states. Unit tests never download weights. The original placeholder-button test now mocks a model-loading failure to preserve its no-predictions error-path assertion.
+
+Optional real inference test (downloads weights on first run):
+
+```bash
+RUN_MODEL_INTEGRATION=1 python -m pytest tests/test_emotion.py::test_real_model_smoke -q -s
+python -m pip check
+```
+
+This integration check includes an overlength response to verify truncation. It checks valid outputs, not model accuracy.
 
 ## Sample dataset
 
@@ -140,26 +157,42 @@ Preparation creates an independent copy with `feedback_clean`, `feedback_status`
 | `non_text` | A non-string, non-null value |
 | `too_short` | Non-empty text shorter than the configured minimum |
 
-Cleaning trims surrounding whitespace and collapses internal whitespace. It preserves case, punctuation, stopwords, and linguistic content; no stemming, lemmatization, sentiment analysis, or emotion prediction runs. The minimum length is configurable in `src/config.py`. The unusable-row view shows the original value and rejection status.
+Cleaning trims surrounding whitespace and collapses internal whitespace. It preserves case, punctuation, stopwords, and linguistic content; no stemming, lemmatization, or sentiment analysis runs. Emotion inference is a separate explicit action after preparation. The minimum length is configurable in `src/config.py`. The unusable-row view shows the original value and rejection status.
 
 Optional date mapping creates `feedback_date_parsed` using safe ISO date/timestamp parsing in UTC. Invalid or ambiguous dates become missing parsed values while originals remain intact. Optional rating mapping creates `rating_numeric`; invalid and non-finite values become missing numeric values. Neither conversion drops rows or assumes a rating scale. Both report valid, missing/blank, and invalid counts. Ratings are not used for classification.
 
-Profiling reports dimensions, column names, stored data types, null/blank counts, duplicate rows beyond the first occurrence, and unique selected course/subject/semester values. No charts or emotion statistics are generated.
+Profiling reports dimensions, column names, stored data types, null/blank counts, duplicate rows beyond the first occurrence, and unique selected course/subject/semester values. Profiling itself does not generate emotion statistics; those come only from successful classification.
 
 ## Session state and privacy
 
 The active dataset, source, column mappings, prepared result, and compact profile remain in Streamlit session state across page navigation. One last valid uploaded dataset is retained for source switching, sharing the same frame reference when active. Source changes and replacement uploads reset dependent selections and preparation; navigation alone preserves them. An invalid replacement clears stale uploaded data and results. For a custom schema, choose the feedback column explicitly; known sample-style names are preselected.
 
-The app stores no uploads on disk or in a database and makes no external model/API calls. Use anonymized feedback. Session memory is temporary, not durable storage: a new browser session or server restart can reset it. If the uploader is cleared or disappears during navigation, the last valid upload remains available until replaced or the session ends. Only the active prepared copy is retained; preparation and profiling are reused until input or mappings change.
+The app stores no uploads on disk or in a database. Model files are downloaded from Hugging Face; feedback is processed locally, not sent to a hosted inference API. Use anonymized feedback. Session memory is temporary, not durable storage: a new browser session or server restart can reset it. If the uploader is cleared or disappears during navigation, the last valid upload remains available until replaced or the session ends. The active prepared copy and completed analysis are retained; preparation and profiling are reused until input or mappings change. Dataset, feedback-column, and context-mapping changes invalidate emotion results. Navigation and result filtering never trigger inference. A failed analysis saves no partial predictions and can be retried explicitly.
+
+## Emotion classification
+
+The selected model is [Jochen Hartmann’s emotion-english-distilroberta-base](https://huggingface.co/j-hartmann/emotion-english-distilroberta-base), a distilled English RoBERTa model fine-tuned for emotion classification. Its compact architecture and seven native emotion labels fit this CPU-first foundation. Supported labels are **anger, disgust, fear, joy, neutral, sadness, and surprise**. The model is pinned to revision `0e1cd914e3d46199ed785853e12b57304e04178b`. Model metadata determines the label order; generic `LABEL_n` values are resolved only through that metadata. No undocumented label mapping is used.
+
+Frustration and satisfaction are not native labels. Anger is not automatically frustration, and joy is not automatically satisfaction; the app does not derive either category. The earlier future-category configuration remains a roadmap placeholder.
+
+Click **Analyze Feedback** after preparation. The app loads the model only then, reuses it through Streamlit resource caching, and classifies only usable rows in batches of **8** on **CPU**. Inference calls are protected by a lock for the shared model. Inputs are padded and truncated to at most **512 tokens**, including special tokens. Original text is never truncated or overwritten. Large datasets can take considerable time; start with the sample or a small upload. A normal laptop needs sufficient RAM for PyTorch, the model, and the data; no GPU is required. First use requires internet access and several hundred MB of download/cache space. Weights are cached in the ignored project-local `.model_cache` directory. Later runs reuse downloaded files. Install dependencies into the virtual environment before running; no model loads during ordinary startup/navigation.
+
+Each analyzed row receives `emotion_label`, numeric `emotion_confidence` in [0, 1], `emotion_status=analyzed`, and `emotion_low_confidence`. Rejected rows remain `not_analyzed` with blank labels/confidence/low-confidence flags. Colliding input column names receive numbered output suffixes, preserving the original fields.
+
+Confidence is the softmax probability of the highest-scoring class, not a calibrated probability that the prediction is correct. The UI rounds it to a percentage while CSV retains the numeric value. Scores strictly below **0.50** are flagged but never dropped; change `LOW_CONFIDENCE_THRESHOLD` in configuration to adjust future runs. Results store the threshold and loaded model revision used for that run. No fabricated scores or substitute heuristic predictions are used when the model fails.
+
+The dashboard shows emotion counts and percentages, a confidence histogram, and dominant emotion (all tied labels when applicable). Percentages and average confidence use analyzed rows only. Download exports every original row and column, preparation fields, and flat emotion outputs as UTF-8 CSV, regardless of the preview filter. It never exports the model or internal Python objects.
+
+These probabilistic predictions are for educational and analytical use, not ground truth. The model is English-only, chooses one dominant label per response, can misread sarcasm or mixed emotions, and may lose context through truncation. No student-feedback benchmark, fairness study, or confidence calibration has been completed for this project. Handle feedback responsibly, use anonymized inputs, and review outputs in context.
 
 ## Roadmap
 
 1. **Foundation (complete):** modular shell, sample data, upload preview, validation, documentation, and tests.
-2. **Preparation (current):** validated CSV intake, conservative cleaning, quality reporting, context conversion, and session persistence.
-3. **Classification:** select and integrate a transformer model; evaluate category compatibility and performance.
-4. **Analytics:** distributions, trends, course comparisons, and contextual review.
+2. **Preparation (complete):** validated CSV intake, conservative cleaning, quality reporting, context conversion, and session persistence.
+3. **Classification (current):** pretrained CPU inference, confidence reporting, basic distributions, and CSV export. Domain-specific evaluation is still planned.
+4. **Advanced analytics (planned):** trends, course comparisons, and contextual review.
 5. **Refinement:** usability, accessibility, evaluation documentation, and portfolio presentation.
 
 ## Limitations
 
-No emotion or sentiment classification, emotion analytics, authentication, database, or deployment is included. CSV supports comma delimiters and UTF-8 (with or without BOM); other encodings and delimiters must be converted before upload. Dates must use ISO format; ambiguous locale dates are flagged. Whitespace-only and empty feedback share the `empty` status. CSV has no native types: uploaded cells remain strings, including numeric-looking values and literal `NA`/`null`; typed non-string values from other data sources are flagged as `non_text`. Minimum length is a preparation heuristic, not proof of meaningful language. Previews are capped at 50 rows; no export is implemented. The synthetic data is for demonstrating the interface, not for model training or performance claims. Emotion predictions in later phases will require evaluation and human interpretation; text alone cannot establish a student's mental state. Dependency ranges are bounded but not a reproducible lockfile.
+No sentiment analysis, advanced time/course analytics, authentication, database, or deployment is included. CSV supports comma delimiters and UTF-8 (with or without BOM); other encodings and delimiters must be converted before upload. Dates must use ISO format; ambiguous locale dates are flagged. Whitespace-only and empty feedback share the `empty` status. CSV has no native types: uploaded cells remain strings, including numeric-looking values and literal `NA`/`null`; typed non-string values from other data sources are flagged as `non_text`. Minimum length is a preparation heuristic, not proof of meaningful language. Previews are capped at 50 rows; export includes all rows. The synthetic data is for demonstrating the interface, not for model training or performance claims. Emotion predictions require evaluation and human interpretation; text alone cannot establish a student's mental state. Dependency ranges are bounded but not a reproducible lockfile.
