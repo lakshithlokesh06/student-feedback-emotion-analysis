@@ -1,30 +1,53 @@
-import plotly.express as px
 import streamlit as st
-
-from src.emotion.classifier import summarize_results
-from src.ui.results import render_summary
+from src.analytics.metrics import analytics_view, metrics, filtered_export
+from src.analytics.filters import apply_filters
+from src.emotion.classifier import export_csv
+from src.ui.dashboard_filters import render_filters
+from src.ui import dashboard_sections as sections
 
 
 def render_dashboard() -> None:
-    st.subheader("Emotion Dashboard")
-    result = st.session_state.get('intake', {}).get('analysis')
+    st.subheader('Emotion Dashboard')
+    state = st.session_state.get('intake', {})
+    result = state.get('analysis')
     if result is None:
         st.info('No feedback has been analyzed yet. Prepare feedback and click Analyze Feedback to populate this dashboard.')
+        return
+    preparation = state.get('prepared')
+    view = analytics_view(result, preparation.fields if preparation else {}, state.get('contexts', {}))
+    filters = render_filters(view, state.get('analytics_generation', 0), result.threshold)
+    filtered = apply_filters(view, filters, result.threshold)
+    st.caption(f'Current filtered view: {len(filtered):,} of {len(view):,} total rows. Model predictions are reused; filters never run inference.')
+    stats = metrics(filtered, result.threshold)
+    cards = [('Total Feedback', stats['total']), ('Feedback Analyzed', stats['analyzed']),
+             ('Dominant Emotion', stats['dominant']), ('Average Confidence', f"{stats['average']:.0%}" if stats['average'] is not None else 'Unavailable'),
+             ('Low-Confidence Predictions', stats['low']), ('Detected Categories', stats['categories'])]
+    for start in (0, 3):
+        for column, (title, value) in zip(st.columns(3), cards[start:start + 3]):
+            column.metric(title, value)
+    left, right = st.columns(2)
+    left.download_button('Download full analyzed dataset', export_csv(result), 'analyzed_student_feedback.csv', 'text/csv')
+    right.download_button('Download current filtered view', filtered_export(result, filtered), 'filtered_student_feedback.csv', 'text/csv')
+    if not len(filtered):
+        st.info('No rows match these filters. Reset Filters or broaden your selections.')
+        return
+    if not stats['analyzed']:
+        st.info('This view has no analyzed feedback. Unusable rows remain available in the export.')
+        return
+    section = st.radio('Dashboard section', ['Overview', 'Course / Subject / Semester', 'Rating vs Emotion', 'Trends Over Time', 'Confidence Analysis', 'Feedback Review', 'Feedback Requiring Attention', 'Insights'], horizontal=True)
+    if section == 'Overview':
+        sections.overview(filtered, result.threshold)
+    elif section == 'Course / Subject / Semester':
+        sections.comparisons(filtered)
+    elif section == 'Rating vs Emotion':
+        sections.ratings(filtered)
+    elif section == 'Trends Over Time':
+        sections.trends(filtered)
+    elif section == 'Confidence Analysis':
+        sections.confidence(filtered, result.threshold)
+    elif section == 'Feedback Review':
+        sections.review(filtered, state)
+    elif section == 'Feedback Requiring Attention':
+        sections.review(filtered, state, attention=True)
     else:
-        render_summary(result)
-        summary = summarize_results(result)
-        left, right = st.columns(2)
-        with left:
-            st.markdown('#### Emotion distribution')
-            distribution = summary['distribution']
-            st.plotly_chart(px.bar(distribution, x='Emotion', y='Count', hover_data={'Percentage': ':.1f'}, color_discrete_sequence=['#167D8D']), width='stretch')
-            st.dataframe(distribution, hide_index=True, width='stretch', column_config={'Percentage': st.column_config.NumberColumn(format='%.1f%%')})
-        with right:
-            st.markdown('#### Confidence distribution')
-            scores = result.data.loc[result.data[result.fields['emotion_status']].eq('analyzed'), result.fields['emotion_confidence']]
-            figure = px.histogram(x=scores, nbins=10, labels={'x': 'Confidence', 'y': 'Feedback count'}, color_discrete_sequence=['#167D8D'])
-            figure.update_xaxes(range=[0, 1], tickformat='.0%')
-            figure.add_vline(x=result.threshold, line_dash='dash')
-            st.plotly_chart(figure, width='stretch')
-        st.caption(f'Distributions include low-confidence predictions; the dashed line marks {result.threshold:.0%}. Percentages exclude unanalyzed rows.')
-    st.caption('Planned: emotion trends, course/subject comparisons, recurring emotional patterns, and contextual review of high-concern feedback.')
+        sections.insights(filtered, result.threshold)

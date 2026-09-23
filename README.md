@@ -2,7 +2,7 @@
 
 Discover the emotions behind student feedback using Natural Language Processing.
 
-A modular Streamlit portfolio project exploring how written student feedback can help educators understand learning experiences. **Phase 3 adds real pretrained emotion classification, confidence reporting, foundational dashboards, and CSV export.**
+A modular Streamlit portfolio project exploring how written student feedback can help educators understand learning experiences. **Phase 4 adds advanced descriptive analytics, shared dashboard filters, contextual review, and deterministic insights on top of real pretrained emotion classification.**
 
 ## Problem statement
 
@@ -23,7 +23,7 @@ Ratings and broad sentiment categories can obscure the context in student feedba
 
 ## Planned features
 
-Domain-specific model evaluation, time trends, course comparisons, recurring patterns, and feedback requiring contextual review. Frustration and satisfaction remain future category goals, not current predictions.
+Domain-specific model evaluation, confidence calibration, and further usability refinement. Frustration and satisfaction remain future category goals, not current predictions.
 
 ## Architecture
 
@@ -42,6 +42,14 @@ student-feedback-emotion-analysis/
 │   │   ├── validation.py
 │   │   ├── preparation.py
 │   │   └── profiling.py
+│   ├── analytics/
+│   │   ├── __init__.py
+│   │   ├── metrics.py
+│   │   ├── distributions.py
+│   │   ├── comparisons.py
+│   │   ├── trends.py
+│   │   ├── filters.py
+│   │   └── insights.py
 │   ├── emotion/
 │   │   ├── __init__.py
 │   │   ├── classifier.py
@@ -56,6 +64,8 @@ student-feedback-emotion-analysis/
 │   │   ├── model_cache.py
 │   │   ├── results.py
 │   │   ├── dashboard.py
+│   │   ├── dashboard_filters.py
+│   │   ├── dashboard_sections.py
 │   │   └── about.py
 │   └── utils/
 │       └── __init__.py
@@ -65,7 +75,9 @@ student-feedback-emotion-analysis/
 │   ├── test_app.py
 │   ├── test_intake.py
 │   ├── test_intake_ui.py
-│   └── test_emotion.py
+│   ├── test_emotion.py
+│   ├── test_analytics.py
+│   └── test_dashboard.py
 ├── data/
 │   └── sample_student_feedback.csv
 ├── requirements.txt
@@ -185,14 +197,33 @@ The dashboard shows emotion counts and percentages, a confidence histogram, and 
 
 These probabilistic predictions are for educational and analytical use, not ground truth. The model is English-only, chooses one dominant label per response, can misread sarcasm or mixed emotions, and may lose context through truncation. No student-feedback benchmark, fairness study, or confidence calibration has been completed for this project. Handle feedback responsibly, use anonymized inputs, and review outputs in context.
 
+## Advanced dashboard (Phase 4)
+
+The dashboard operates exclusively on the stored Phase 3 analyzed result; no model runs when a filter or dashboard section changes. Analytics use a narrow copied view with positional row references, preserving every original value and prediction even when source row indices or column names collide. The model, its labels, and its confidence scores are unchanged.
+
+- **Overview:** filtered total rows, analyzed rows, dominant emotion (including ties), average confidence, low-confidence count, detected categories, emotion counts/percentages, and confidence histogram. Native emotion order is consistent and is not a severity ranking.
+- **Course / Subject / Semester:** descriptive counts, dominant emotion, average confidence, stacked emotion counts, and percentage tables. Semester labels may be text. Displays up to 15 groups by response volume with deterministic tie handling; filter to inspect other groups. Missing/blank group context is excluded from that section and reported. Groups are not rated best/worst.
+- **Rating vs Emotion:** average numeric rating by emotion, feedback counts, and emotion composition by rating. Displays up to 20 rating values by volume; filters can select others. Missing/invalid/nonfinite ratings are excluded only here and counted. No rating scale or causal relationship is assumed.
+- **Trends Over Time:** daily, Monday-start weekly, or monthly aggregation in UTC. Default is daily for up to 31 days, weekly for up to 180 days, otherwise monthly. Invalid/missing dates are counted and excluded only from temporal aggregation. Charts show feedback volume and emotion counts or percentages. Empty periods have zero counts and undefined percentages. More than 600 periods requires coarser aggregation or narrower filters.
+- **Confidence Analysis:** average/median confidence, low-confidence count/share using the analyzed run's threshold, and per-emotion confidence summary and box plot. Confidence is not validated accuracy.
+- **Feedback Review:** analyzed responses with selected context, filtered through the shared controls and sorted by confidence. Preview is capped at 50 rows.
+- **Feedback Requiring Attention:** “Feedback that may benefit from closer review” selects anger, fear, sadness, and disgust predictions, sorted by confidence. Low-confidence predictions are retained. This is a descriptive human-review aid, not a diagnosis, danger assessment, or disciplinary recommendation.
+- **Insights:** deterministic observations of dominant-emotion share, low-confidence share, and highest mean model confidence, including ties. No LLM, fabricated statistics, or causal explanations are used. All observations explicitly refer to the current filtered view.
+
+Dashboard filters support emotion, course, subject, semester, numeric rating values, and confidence level when fields are available. Selections combine with AND; empty selections include all values, including missing context. Confidence filters include analyzed rows only. Reset Filters restores all rows. Filter state lives separately from inference state, survives navigation, and resets on new/invalidated analysis. Every dashboard metric, chart, insight, review, and filtered export uses the same filtered view; optional sections further exclude only rows missing their required context. Missing fields, zero analyzed rows, and zero-match filters have explicit empty states.
+
+**Download full analyzed dataset** retains the full existing export. **Download current filtered view** exports all matching rows (not only the preview) and all original/preparation/emotion fields as UTF-8 CSV. No model objects or chart images are exported.
+
+The dashboard describes model outputs and associations, not causation or ground truth. Sparse groups/periods may give unstable proportions. Human review is required before decisions based on individual feedback. The system does not diagnose student wellbeing or mental-health conditions and does not infer characteristics about individual students.
+
 ## Roadmap
 
 1. **Foundation (complete):** modular shell, sample data, upload preview, validation, documentation, and tests.
 2. **Preparation (complete):** validated CSV intake, conservative cleaning, quality reporting, context conversion, and session persistence.
-3. **Classification (current):** pretrained CPU inference, confidence reporting, basic distributions, and CSV export. Domain-specific evaluation is still planned.
-4. **Advanced analytics (planned):** trends, course comparisons, and contextual review.
+3. **Classification (complete):** pretrained CPU inference, confidence reporting, basic distributions, and CSV export. Domain-specific evaluation is still planned.
+4. **Advanced analytics (current):** context comparisons, rating associations, temporal trends, confidence exploration, filters, review aids, and deterministic insights.
 5. **Refinement:** usability, accessibility, evaluation documentation, and portfolio presentation.
 
 ## Limitations
 
-No sentiment analysis, advanced time/course analytics, authentication, database, or deployment is included. CSV supports comma delimiters and UTF-8 (with or without BOM); other encodings and delimiters must be converted before upload. Dates must use ISO format; ambiguous locale dates are flagged. Whitespace-only and empty feedback share the `empty` status. CSV has no native types: uploaded cells remain strings, including numeric-looking values and literal `NA`/`null`; typed non-string values from other data sources are flagged as `non_text`. Minimum length is a preparation heuristic, not proof of meaningful language. Previews are capped at 50 rows; export includes all rows. The synthetic data is for demonstrating the interface, not for model training or performance claims. Emotion predictions require evaluation and human interpretation; text alone cannot establish a student's mental state. Dependency ranges are bounded but not a reproducible lockfile.
+No sentiment analysis, authentication, database, or deployment is included. CSV supports comma delimiters and UTF-8 (with or without BOM); other encodings and delimiters must be converted before upload. Dates must use ISO format; ambiguous locale dates are flagged. Whitespace-only and empty feedback share the `empty` status. CSV has no native types: uploaded cells remain strings, including numeric-looking values and literal `NA`/`null`; typed non-string values from other data sources are flagged as `non_text`. Minimum length is a preparation heuristic, not proof of meaningful language. Previews are capped at 50 rows; export includes all rows. The synthetic data is for demonstrating the interface, not for model training or performance claims. Emotion predictions require evaluation and human interpretation; text alone cannot establish a student's mental state. Dependency ranges are bounded but not a reproducible lockfile.

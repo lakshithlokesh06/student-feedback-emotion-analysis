@@ -22,6 +22,7 @@ def reset_dataset(state: MutableMapping, source: str, identity: str | None,
 
 
 def invalidate_analysis(state: MutableMapping) -> None:
+    state['analytics_generation'] = state.get('analytics_generation', 0) + 1
     state['analysis'] = None
     state['analysis_status'] = 'not_analyzed'
     state['analysis_error'] = None
