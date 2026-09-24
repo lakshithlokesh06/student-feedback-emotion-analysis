@@ -8,7 +8,7 @@ SAMPLE_DATASET_PATH = PROJECT_ROOT / "data" / "sample_student_feedback.csv"
 REQUIRED_DATASET_COLUMNS = (
     "feedback_id", "feedback", "course", "subject", "semester", "rating", "feedback_date"
 )
-NAVIGATION_LABELS = ("Overview", "Analyze Feedback", "Emotion Dashboard", "Model Evaluation", "About")
+NAVIGATION_LABELS = ("Overview", "Analyze Feedback", "Emotion Dashboard", "Model Evaluation", "Human Review", "About")
 FUTURE_EMOTION_CATEGORIES = (
     "joy", "sadness", "anger", "fear", "surprise", "frustration", "satisfaction", "neutral"
 )
@@ -33,3 +33,14 @@ EVALUATION_CONFIDENCE_EDGES = (0.0, 0.50, 0.70, 0.85, 1.0)
 HIGH_CONFIDENCE_THRESHOLD = 0.85
 AMBIGUITY_MARGIN_THRESHOLD = 0.10
 CALIBRATION_BINS = 10
+
+REVIEW_STATUSES = ("unreviewed", "accepted", "corrected", "uncertain", "skipped")
+REVIEW_NOTE_MAX_LENGTH = 500
+REVIEWER_ID_MAX_LENGTH = 80
+DEFAULT_REVIEWER_ID = "local_reviewer"
+REVIEW_SOURCES = ("Main Analysis Results", "Evaluation Results")
+REVIEW_PRIORITY_MODES = (
+    "All predictions", "Low-confidence predictions", "High-confidence predictions",
+    "Specific emotion", "Feedback requiring attention", "Ambiguous predictions",
+    "Misclassified evaluation rows",
+)

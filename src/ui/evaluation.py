@@ -61,6 +61,7 @@ def render_evaluation():
         with st.expander('Rejected evaluation rows and reasons'):
             st.dataframe(invalid.head(PREVIEW_ROWS), hide_index=True, width='stretch')
     if st.button('Run Evaluation', type='primary', disabled=dataset.valid_count == 0):
+        state['review_generation'] = state.get('review_generation', 0) + 1
         state.update(results=None, status='running', error=None)
         progress = st.progress(0.0)
         try:

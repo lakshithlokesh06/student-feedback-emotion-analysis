@@ -2,7 +2,7 @@
 
 Discover the emotions behind student feedback using Natural Language Processing.
 
-A modular Streamlit portfolio project exploring how written student feedback can help educators understand learning experiences. **Phase 5 adds separate labeled-data evaluation, error analysis, confidence/reliability analysis, and model-score transparency.**
+A modular Streamlit portfolio project exploring how written student feedback can help educators understand learning experiences. **Phase 6 adds human review, annotation provenance, agreement analysis, and curated labeled dataset exports.**
 
 ## Problem statement
 
@@ -277,14 +277,59 @@ Offline tests use test doubles and cover validation, metrics, absent/empty class
 RUN_MODEL_INTEGRATION=1 python -m pytest tests/test_evaluation.py::test_real_evaluation -q -s
 ```
 
+## Human Review (Phase 6)
+
+Human review uses existing predictions from **Main Analysis Results** or **Evaluation Results**, in separate workspaces. Analyze the bundled sample (or upload and analyze feedback), open Human Review, select a source, and inspect one item at a time. Choose a decision, optionally add a note and local reviewer ID, then use **Save Review** or **Save & Next**. Previous, Next, numbered jump, First unreviewed item, and Clear current item selection support navigation. Save edits before navigating.
+
+| Status | Meaning |
+| --- | --- |
+| unreviewed | No saved decision |
+| accepted | Reviewer agrees with the original predicted emotion |
+| corrected | Reviewer selects a different supported emotion |
+| uncertain | Reviewer cannot confidently assign one emotion; reviewed label stays empty |
+| skipped | Review is deliberately deferred; reviewed label stays empty |
+
+The seven supported labels remain anger, disgust, fear, joy, neutral, sadness, and surprise. Notes are optional, trimmed and normalized, with control characters removed and a 500-character maximum. The optional reviewer ID defaults to `local_reviewer`; it is provenance metadata, not authentication. Use a non-identifying label if possible.
+
+### Queues, progress, and state
+
+Priorities include all predictions, low-confidence predictions, high-confidence predictions (≥0.85), a specific emotion, and feedback requiring attention (anger, fear, sadness, disgust). Evaluation also supports ambiguous predictions and misclassified rows. Optional detail controls appear only when those fields exist; normal analysis does not rerun inference to obtain runner-up or ambiguity information. These modes select and order NLP outputs; they do not rank students or infer risk.
+
+Filters cover review status, model label, reviewed label, confidence range, low-confidence flag, ambiguity, and available course/subject/semester context. Reset Filters restores the full queue and default priority without deleting annotations. Progress and exports always use the full source, regardless of filters. Reviewed = accepted + corrected + uncertain; Remaining = unreviewed + skipped. Uncertainty is a legitimate completed review outcome; skipped items remain deferred.
+
+Annotations, queue preferences, and selected items live in Streamlit session state. Navigation and dashboard filtering preserve saved reviews. Dataset replacement, preparation changes, or a new analysis/evaluation run invalidate the affected source's previous review snapshot when Human Review next opens. The other source is unaffected. **Clear ALL saved review progress for this source** explicitly removes that source's decisions and audit events. Export before clearing or ending a session; there is no persistent storage.
+
+Review IDs are deterministic SHA-256 hashes incorporating source, dataset identity, optional original feedback ID, feedback text, row content, and duplicate occurrence. Dataset identity includes columns, row content/order, source, and model revision. Duplicate rows receive distinct IDs; IDs remain stable through filters and navigation. Reordering or changing the dataset creates a new snapshot. Displayed IDs expose only a hash prefix. Restore/import is future work and would require snapshot validation and explicit conflict handling.
+
+### Agreement and correction patterns
+
+Model-human agreement is accepted / (accepted + corrected). Uncertain/skipped decisions are excluded from this denominator. This is agreement with the session's annotations, **not objective accuracy**. Counts, correction transitions, corrections by predicted/reviewed emotion, average confidence for accepted/corrected predictions, and correction rates by confidence band describe only the reviewed subset. The seven-class agreement matrix appears after three accepted/corrected decisions. Warnings identify fewer than ten accepted/corrected decisions or fewer than three decisions for a represented predicted emotion.
+
+For evaluation data, annotation comparison reports all three agree, model/human agree, reference/human agree, model/reference agree, or all differ. No label source is treated as infallible. Observations are deterministic and descriptive; they do not establish causation.
+
+### Annotation exports and integrity
+
+Three UTF-8 CSV downloads are available:
+
+- **Reviewed Feedback CSV:** all saved statuses, original feedback/prediction/confidence, available context/details, stable ID, source/snapshot identity, reviewed label, note, timestamp, and reviewer ID.
+- **Curated Labeled Dataset CSV:** accepted/corrected rows only, with `feedback`, human-reviewed label as `true_emotion`, and available context. Uncertain and skipped rows are excluded. This schema can be uploaded to Model Evaluation.
+- **Annotation Audit CSV:** every save event, including edits, original label/confidence, reviewed label/status/note, UTC timestamp, reviewer ID, source, and snapshot identity.
+
+Latest decisions are stored separately from the append-only save-event audit. Review never modifies original feedback, model predictions/confidence, main analysis, or evaluation results. Changing reviewer ID does not create an independent annotation panel: this version retains one latest decision per row and an audit of edits, ready for future multiple-reviewer support.
+
+Reviewer labels are human annotations, not guaranteed ground truth, and reviewers may disagree. Single-label classification can oversimplify mixed emotions: select the dominant emotion when reasonable or mark uncertain. Reviewed datasets can support future evaluation or fine-tuning, but **the model is unchanged and annotation never retrains or fine-tunes it**. There are no accounts, adjudication, inter-rater statistics, import/restore, or persistent storage in this phase.
+
+Review logic lives in `src/review/` (identifiers, queue, validation, state, metrics, export); Streamlit rendering lives in `src/ui/review.py` and `src/ui/review_sections.py`. Offline fixtures and AppTest checks cover review outcomes, immutability, identifiers, filters/priorities, metrics, exports, navigation, and source invalidation without transformer downloads.
+
 ## Roadmap
 
 1. **Foundation (complete):** modular shell, sample data, upload preview, validation, documentation, and tests.
 2. **Preparation (complete):** validated CSV intake, conservative cleaning, quality reporting, context conversion, and session persistence.
 3. **Classification (complete):** pretrained CPU inference, confidence reporting, basic distributions, and CSV export. Domain-specific evaluation is still planned.
 4. **Advanced analytics (complete):** context comparisons, rating associations, temporal trends, confidence exploration, filters, review aids, and deterministic insights.
-5. **Evaluation (current):** labeled-data validation, metrics, errors, confidence reliability, score transparency, and exports.
-6. **Refinement (planned):** representative human-annotated assessment, usability, accessibility, and portfolio presentation.
+5. **Evaluation (complete):** labeled-data validation, metrics, errors, confidence reliability, score transparency, and exports.
+6. **Human review (current):** annotation queues, decisions, agreement, provenance, and curated dataset exports.
+7. **Refinement (planned):** representative human-annotated assessment, usability, accessibility, and portfolio presentation.
 
 ## Limitations
 
