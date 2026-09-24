@@ -8,7 +8,7 @@ SAMPLE_DATASET_PATH = PROJECT_ROOT / "data" / "sample_student_feedback.csv"
 REQUIRED_DATASET_COLUMNS = (
     "feedback_id", "feedback", "course", "subject", "semester", "rating", "feedback_date"
 )
-NAVIGATION_LABELS = ("Overview", "Analyze Feedback", "Emotion Dashboard", "About")
+NAVIGATION_LABELS = ("Overview", "Analyze Feedback", "Emotion Dashboard", "Model Evaluation", "About")
 FUTURE_EMOTION_CATEGORIES = (
     "joy", "sadness", "anger", "fear", "surprise", "frustration", "satisfaction", "neutral"
 )
@@ -27,3 +27,9 @@ MODEL_EMOTIONS = ("anger", "disgust", "fear", "joy", "neutral", "sadness", "surp
 INFERENCE_BATCH_SIZE = 8
 MAX_MODEL_TOKENS = 512
 LOW_CONFIDENCE_THRESHOLD = 0.50
+
+LABELED_SAMPLE_PATH = PROJECT_ROOT / "data" / "sample_labeled_feedback.csv"
+EVALUATION_CONFIDENCE_EDGES = (0.0, 0.50, 0.70, 0.85, 1.0)
+HIGH_CONFIDENCE_THRESHOLD = 0.85
+AMBIGUITY_MARGIN_THRESHOLD = 0.10
+CALIBRATION_BINS = 10

@@ -16,14 +16,28 @@ class EmotionModel:
     lock: Any = field(default_factory=Lock)
 
     def predict(self, texts: list[str]) -> list[dict]:
+        return self._predict(texts, detailed=False)
+
+    def predict_detailed(self, texts: list[str]) -> list[dict]:
+        return self._predict(texts, detailed=True)
+
+    def _predict(self, texts: list[str], detailed: bool) -> list[dict]:
         import torch
         with self.lock, torch.inference_mode():
             inputs = self.tokenizer(texts, padding=True, truncation=True,
                                     max_length=self.metadata['max_tokens'], return_tensors='pt')
             probabilities = torch.softmax(self.model(**inputs).logits, dim=-1)
             confidence, indices = probabilities.max(dim=-1)
-            return [{'label': self.metadata['labels'][index], 'score': score}
-                    for index, score in zip(indices.tolist(), confidence.tolist())]
+            output = [{'label': self.metadata['labels'][index], 'score': score}
+                      for index, score in zip(indices.tolist(), confidence.tolist())]
+            if detailed:
+                lengths = self.tokenizer(texts, truncation=False, add_special_tokens=True,
+                                         return_length=True, verbose=False)['length']
+                for row, scores, length in zip(output, probabilities.tolist(), lengths):
+                    row['scores'] = dict(zip(self.metadata['labels'], scores))
+                    row['token_length'] = length
+                    row['was_truncated'] = length > self.metadata['max_tokens']
+            return output
 
 
 def load_model() -> EmotionModel:

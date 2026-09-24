@@ -2,7 +2,7 @@
 
 Discover the emotions behind student feedback using Natural Language Processing.
 
-A modular Streamlit portfolio project exploring how written student feedback can help educators understand learning experiences. **Phase 4 adds advanced descriptive analytics, shared dashboard filters, contextual review, and deterministic insights on top of real pretrained emotion classification.**
+A modular Streamlit portfolio project exploring how written student feedback can help educators understand learning experiences. **Phase 5 adds separate labeled-data evaluation, error analysis, confidence/reliability analysis, and model-score transparency.**
 
 ## Problem statement
 
@@ -10,7 +10,7 @@ Ratings and broad sentiment categories can obscure the context in student feedba
 
 ## Current functionality
 
-- Four pages: Overview, Analyze Feedback, Emotion Dashboard, and About.
+- Five pages: Overview, Analyze Feedback, Emotion Dashboard, Model Evaluation, and About.
 - Real result metrics after analysis and explicit “Not yet analyzed” indicators before it.
 - Synthetic sample loading, UTF-8 CSV upload, preview, and feedback-column selection.
 - Strict CSV validation with bounded file, row, and column sizes.
@@ -50,6 +50,15 @@ student-feedback-emotion-analysis/
 │   │   ├── trends.py
 │   │   ├── filters.py
 │   │   └── insights.py
+│   ├── evaluation/
+│   │   ├── __init__.py
+│   │   ├── validation.py
+│   │   ├── runner.py
+│   │   ├── metrics.py
+│   │   ├── confidence.py
+│   │   ├── errors.py
+│   │   ├── quality.py
+│   │   └── state.py
 │   ├── emotion/
 │   │   ├── __init__.py
 │   │   ├── classifier.py
@@ -66,6 +75,8 @@ student-feedback-emotion-analysis/
 │   │   ├── dashboard.py
 │   │   ├── dashboard_filters.py
 │   │   ├── dashboard_sections.py
+│   │   ├── evaluation.py
+│   │   ├── evaluation_sections.py
 │   │   └── about.py
 │   └── utils/
 │       └── __init__.py
@@ -77,9 +88,11 @@ student-feedback-emotion-analysis/
 │   ├── test_intake_ui.py
 │   ├── test_emotion.py
 │   ├── test_analytics.py
-│   └── test_dashboard.py
+│   ├── test_dashboard.py
+│   └── test_evaluation.py
 ├── data/
-│   └── sample_student_feedback.csv
+│   ├── sample_student_feedback.csv
+│   └── sample_labeled_feedback.csv
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── .gitignore
@@ -195,7 +208,7 @@ Confidence is the softmax probability of the highest-scoring class, not a calibr
 
 The dashboard shows emotion counts and percentages, a confidence histogram, and dominant emotion (all tied labels when applicable). Percentages and average confidence use analyzed rows only. Download exports every original row and column, preparation fields, and flat emotion outputs as UTF-8 CSV, regardless of the preview filter. It never exports the model or internal Python objects.
 
-These probabilistic predictions are for educational and analytical use, not ground truth. The model is English-only, chooses one dominant label per response, can misread sarcasm or mixed emotions, and may lose context through truncation. No student-feedback benchmark, fairness study, or confidence calibration has been completed for this project. Handle feedback responsibly, use anonymized inputs, and review outputs in context.
+These probabilistic predictions are for educational and analytical use, not ground truth. The model is English-only, chooses one dominant label per response, can misread sarcasm or mixed emotions, and may lose context through truncation. The evaluation workflow is implemented, but no representative human-annotated benchmark, fairness study, or validated confidence calibration has been completed for this project. Handle feedback responsibly, use anonymized inputs, and review outputs in context.
 
 ## Advanced dashboard (Phase 4)
 
@@ -216,13 +229,62 @@ Dashboard filters support emotion, course, subject, semester, numeric rating val
 
 The dashboard describes model outputs and associations, not causation or ground truth. Sparse groups/periods may give unstable proportions. Human review is required before decisions based on individual feedback. The system does not diagnose student wellbeing or mental-health conditions and does not infer characteristics about individual students.
 
+## Model Evaluation (Phase 5)
+
+**Model Evaluation** is a separate workspace for comparing model outputs with supplied reference labels. Upload UTF-8 CSV with required columns `feedback` and `true_emotion`; optional context is preserved without being required. Existing file, row, column, encoding, and header validation applies. Ground-truth labels are trimmed and lowercased and must be one of anger, disgust, fear, joy, neutral, sadness, or surprise. Frustration, satisfaction, positive, negative, and other unrelated labels are rejected, never mapped.
+
+The original label and text are retained. The normalized label, validation reason, and duplicate flag are stored in added fields with collision-safe names. Rows with missing/unsupported labels or unusable text are preserved but excluded from inference and all metrics. Duplicated normalized feedback/label pairs are retained and reported, including pairs with differing context; repeated examples may inflate apparent evidence. A valid schema with some rejected rows can still be evaluated; no valid rows disables the run action.
+
+### Synthetic labeled sample
+
+`data/sample_labeled_feedback.csv` contains **49 new synthetic examples, seven per native emotion**, with course, subject, and semester context. Labels were authored for this demonstration, not independently adjudicated by human annotators. It contains no real student information and does not copy the original sample row-for-row. **This is a workflow demonstration, not a validated research benchmark. Synthetic-data results do not establish real-world or production accuracy.** Select the bundled sample and click Run Evaluation to explore the workflow.
+
+### Inference and state
+
+Evaluation reuses the same cached model, pinned revision, eight-row CPU batching, tokenizer, normalization, and 512-token limit. Only its optional detailed-output path exposes the existing softmax vector; the normal inference label/score contract and main table remain unchanged. Evaluation does not train, fine-tune, calibrate, or load a second model.
+
+Evaluation dataset, source, results, review filters, and status live under a separate session-state namespace. Navigation preserves current data/results and error filters. Replacing evaluation data or switching sources invalidates only evaluation results and filters. Changing the normal analysis dataset leaves evaluation untouched. Evaluation uploads remain in session memory across navigation; source switching clears them. Inference runs only on Run Evaluation, never on a review-filter change. Failures save no partial results.
+
+### Metrics and confusion matrix
+
+Accuracy, macro and weighted precision/recall/F1, and per-class precision/recall/F1/support are computed with scikit-learn from successfully evaluated rows only. Macro metrics average **all seven native classes**, with undefined class scores set to zero, even when classes are absent; weighted metrics use true-label support. No evaluated rows yields unavailable aggregate metrics rather than claimed zero accuracy. Inspect class support when interpreting averages.
+
+The confusion matrix keeps the native label order, true labels on rows and predictions on columns. Toggle raw counts or row-normalized percentages. Empty true-label rows display zero and have no recall evidence. True/predicted class distributions report counts and percentages without causal interpretations.
+
+### Errors, confidence, and reliability
+
+Error review filters by true label, predicted label, minimum confidence, and correctness. Separate tables show high-confidence misclassifications (default score ≥ 0.85) and ambiguous predictions. Review filters affect these tables, not the full-run headline metrics or exports. Every preview is bounded to 50 rows.
+
+Confidence analysis compares mean confidence and distributions for correct/incorrect predictions, plus accuracy by bands `[0, .50)`, `[.50, .70)`, `[.70, .85)`, and `[.85, 1]`. Band edges are configurable. A ten-bin reliability chart compares mean confidence with observed accuracy and reports support; empty bins have no accuracy estimate. Warnings cover fewer than 30 evaluated examples, fewer than 3 examples for a represented class, one/two represented labels, a class occupying at least 70% of labels, duplicates, synthetic data, and especially unstable calibration below 100 examples. No recalibration is performed.
+
+Confidence is not correctness or validated accuracy. High-confidence predictions can be wrong. Domain-specific, independently labeled data is required for meaningful assessment, and the tool is not validated for educational decision-making.
+
+### Score transparency and truncation
+
+For a selected evaluated row, inspect the original feedback, normalized reference label, predicted label, complete seven-class probabilities, second-highest label/score, and top-two margin. A margin strictly below 0.10 sets `ambiguous_prediction`; thresholds are in `src/config.py`. This flag is analytical and does not claim that the model understands or fails to understand the text.
+
+Token length is measured on prepared feedback before truncation, including special tokens. Evaluation records truncation status and reports count/share. Accuracy by truncated/non-truncated groups is displayed only when each group has at least three examples; it does not imply truncation caused errors. Original feedback is never truncated in storage/export.
+
+Explainability here means **model-score transparency**, not attribution. Word/token importance, SHAP, LIME, and other attribution frameworks are intentionally omitted because scores alone cannot establish why a model chose a label. No fabricated explanations or LLM-generated interpretations are used.
+
+### Evaluation exports and tests
+
+Download all evaluation rows as UTF-8 CSV, per-class metrics as CSV, or only misclassified evaluated rows as CSV. Results include original feedback/labels/context, preparation/validation fields, normalized truth, prediction, confidence, correctness, low-confidence/ambiguity flags, runner-up scores, flat class probabilities, and truncation fields. Rejected rows have no prediction or correctness value. Exports never contain model instances or serialized Python objects.
+
+Offline tests use test doubles and cover validation, metrics, absent/empty classes, confusion, confidence bins, error selection, transparency fields, exports, and independent session state. The real-model evaluation test is opt-in:
+
+```bash
+RUN_MODEL_INTEGRATION=1 python -m pytest tests/test_evaluation.py::test_real_evaluation -q -s
+```
+
 ## Roadmap
 
 1. **Foundation (complete):** modular shell, sample data, upload preview, validation, documentation, and tests.
 2. **Preparation (complete):** validated CSV intake, conservative cleaning, quality reporting, context conversion, and session persistence.
 3. **Classification (complete):** pretrained CPU inference, confidence reporting, basic distributions, and CSV export. Domain-specific evaluation is still planned.
-4. **Advanced analytics (current):** context comparisons, rating associations, temporal trends, confidence exploration, filters, review aids, and deterministic insights.
-5. **Refinement:** usability, accessibility, evaluation documentation, and portfolio presentation.
+4. **Advanced analytics (complete):** context comparisons, rating associations, temporal trends, confidence exploration, filters, review aids, and deterministic insights.
+5. **Evaluation (current):** labeled-data validation, metrics, errors, confidence reliability, score transparency, and exports.
+6. **Refinement (planned):** representative human-annotated assessment, usability, accessibility, and portfolio presentation.
 
 ## Limitations
 

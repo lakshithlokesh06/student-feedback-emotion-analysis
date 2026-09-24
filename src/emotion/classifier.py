@@ -5,7 +5,7 @@ from typing import Callable
 
 import pandas as pd
 
-from src.config import INFERENCE_BATCH_SIZE, LOW_CONFIDENCE_THRESHOLD
+from src.config import INFERENCE_BATCH_SIZE, LOW_CONFIDENCE_THRESHOLD, MODEL_EMOTIONS
 from src.data.preparation import PreparationResult, _available_name
 from src.emotion.labels import EmotionError, normalize_label
 
@@ -20,7 +20,8 @@ class AnalysisResult:
 
 def classify_feedback(prepared: PreparationResult, model, batch_size: int = INFERENCE_BATCH_SIZE,
                       threshold: float = LOW_CONFIDENCE_THRESHOLD,
-                      progress: Callable[[float], None] | None = None) -> AnalysisResult:
+                      progress: Callable[[float], None] | None = None,
+                      include_details: bool = False) -> AnalysisResult:
     if batch_size < 1 or not 0 <= threshold <= 1:
         raise EmotionError('Batch size must be positive and confidence threshold must be between zero and one.')
     data = prepared.data.copy(deep=True)
@@ -28,13 +29,16 @@ def classify_feedback(prepared: PreparationResult, model, batch_size: int = INFE
     positions = [i for i, valid in enumerate(usable) if valid]
     values = {'emotion_label': [None] * len(data), 'emotion_confidence': [float('nan')] * len(data),
               'emotion_status': ['not_analyzed'] * len(data), 'emotion_low_confidence': [None] * len(data)}
+    if include_details:
+        for field in [*(f'score_{label}' for label in MODEL_EMOTIONS), 'token_length', 'was_truncated']:
+            values[field] = [None] * len(data)
     if positions and model is None:
         raise EmotionError('Load the emotion model before analyzing usable feedback.')
     try:
         for start in range(0, len(positions), batch_size):
             batch_positions = positions[start:start + batch_size]
             texts = data.iloc[batch_positions][prepared.fields['feedback_clean']].tolist()
-            predictions = model.predict(texts)
+            predictions = model.predict_detailed(texts) if include_details else model.predict(texts)
             if len(predictions) != len(texts):
                 raise EmotionError('The model returned an incomplete batch. No results were saved; retry analysis.')
             id2label = dict(enumerate(model.metadata['labels']))
@@ -47,6 +51,16 @@ def classify_feedback(prepared: PreparationResult, model, batch_size: int = INFE
                 values['emotion_confidence'][position] = score
                 values['emotion_status'][position] = 'analyzed'
                 values['emotion_low_confidence'][position] = score < threshold
+                if include_details:
+                    scores = prediction['scores']
+                    if set(scores) != set(MODEL_EMOTIONS) or any(not math.isfinite(float(v)) or not 0 <= float(v) <= 1 for v in scores.values()):
+                        raise EmotionError('The model returned invalid class probabilities. No results were saved.')
+                    if not math.isclose(sum(scores.values()), 1.0, abs_tol=1e-5) or not math.isclose(scores[label], score, abs_tol=1e-6) or score < max(scores.values()) - 1e-6:
+                        raise EmotionError('Class probabilities do not match the prediction. No results were saved.')
+                    for emotion in MODEL_EMOTIONS:
+                        values[f'score_{emotion}'][position] = float(scores[emotion])
+                    values['token_length'][position] = int(prediction['token_length'])
+                    values['was_truncated'][position] = bool(prediction['was_truncated'])
             if progress:
                 progress(min((start + len(texts)) / len(positions), 1.0))
     except EmotionError:
