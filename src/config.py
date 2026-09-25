@@ -8,7 +8,7 @@ SAMPLE_DATASET_PATH = PROJECT_ROOT / "data" / "sample_student_feedback.csv"
 REQUIRED_DATASET_COLUMNS = (
     "feedback_id", "feedback", "course", "subject", "semester", "rating", "feedback_date"
 )
-NAVIGATION_LABELS = ("Overview", "Analyze Feedback", "Emotion Dashboard", "Model Evaluation", "Human Review", "About")
+NAVIGATION_LABELS = ("Overview", "Analyze Feedback", "Emotion Dashboard", "Model Evaluation", "Human Review", "Model Monitoring", "About")
 FUTURE_EMOTION_CATEGORIES = (
     "joy", "sadness", "anger", "fear", "surprise", "frustration", "satisfaction", "neutral"
 )
@@ -44,3 +44,11 @@ REVIEW_PRIORITY_MODES = (
     "Specific emotion", "Feedback requiring attention", "Ambiguous predictions",
     "Misclassified evaluation rows",
 )
+
+# Project-defined monitoring heuristics, not statistical guarantees.
+MONITORING_THRESHOLDS = {
+    'js_noticeable': 0.05, 'js_substantial': 0.15,
+    'confidence_drop': 0.05, 'low_increase_pp': 10.0,
+    'length_relative_change': 0.25, 'missing_increase_pp': 10.0,
+    'emotion_change_pp': 10.0, 'minimum_emotion_support': 3,
+}

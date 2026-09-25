@@ -3,6 +3,7 @@ import streamlit as st
 
 from src.config import APP_SUBTITLE, APP_TITLE
 from src.ui.about import render_about
+from src.ui.monitoring import render_monitoring
 from src.ui.review import render_review
 from src.ui.evaluation import render_evaluation
 from src.ui.analysis import render_analysis
@@ -13,7 +14,7 @@ from src.ui.sidebar import render_sidebar
 
 def main() -> None:
     st.set_page_config(page_title=APP_TITLE, page_icon="📘", layout="wide")
-    st.caption("STUDENT FEEDBACK LAB / PHASE 6")
+    st.caption("STUDENT FEEDBACK LAB / PHASE 7")
     st.title(APP_TITLE)
     st.write(APP_SUBTITLE)
     st.divider()
@@ -25,9 +26,10 @@ def main() -> None:
         "About": render_about,
         "Model Evaluation": render_evaluation,
         "Human Review": render_review,
+        "Model Monitoring": render_monitoring,
     }[page]()
     st.divider()
-    st.caption("Student Feedback Emotion Analysis · Portfolio project · Human review release")
+    st.caption("Student Feedback Emotion Analysis · Portfolio project · Model monitoring release")
 
 
 if __name__ == "__main__":

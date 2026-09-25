@@ -334,3 +334,86 @@ Review logic lives in `src/review/` (identifiers, queue, validation, state, metr
 ## Limitations
 
 No sentiment analysis, authentication, database, or deployment is included. CSV supports comma delimiters and UTF-8 (with or without BOM); other encodings and delimiters must be converted before upload. Dates must use ISO format; ambiguous locale dates are flagged. Whitespace-only and empty feedback share the `empty` status. CSV has no native types: uploaded cells remain strings, including numeric-looking values and literal `NA`/`null`; typed non-string values from other data sources are flagged as `non_text`. Minimum length is a preparation heuristic, not proof of meaningful language. Previews are capped at 50 rows; export includes all rows. The synthetic data is for demonstrating the interface, not for model training or performance claims. Emotion predictions require evaluation and human interpretation; text alone cannot establish a student's mental state. Dependency ranges are bounded but not a reproducible lockfile.
+
+## Phase 7 — Model Monitoring
+
+**Model Monitoring** compares a reference dataset with current analyzed feedback:
+monitoring identifies changes, **Model Evaluation** measures performance against
+labels, and **Human Review** captures human annotations. The existing model is
+unchanged; this phase does not retrain it or add production monitoring infrastructure.
+
+1. Classify the bundled sample in **Analyze Feedback**.
+2. Open **Model Monitoring**, then **Set main analysis as Reference Snapshot**.
+3. Analyze a different CSV in the existing analysis workflow, then select **Load
+   main analysis as Current**. Alternatively upload previously analyzed UTF-8 CSVs
+   directly into either monitoring slot and click **Use uploaded reference/current**.
+4. Inspect the report, temporal views, emotion details, and current-row drilldowns.
+5. Download **Monitoring Summary CSV**, **Emotion Drift CSV**, and **Monitoring
+   Signals CSV**. These contain numerical comparisons and deterministic signals.
+
+For a reproducible demonstration, use `data/synthetic_monitoring_current.csv` as
+the second raw dataset. These twelve new examples are entirely synthetic and
+contain **no model predictions**. Analyze them with the existing classifier before
+loading them into monitoring. No fabricated model scores are bundled.
+
+Uploads require `feedback`, `emotion_label`, and `emotion_confidence`. Labels are
+trimmed/lowercased and must belong to the existing seven model emotions. Confidence
+must be finite and between 0 and 1. Valid prediction columns are reused without
+inference. Raw uploads receive instructions to use Analyze Feedback. Existing CSV
+size/row/column limits, malformed-record checks, and duplicate-header validation
+apply. Input frames are never modified. Rows with both prediction fields empty
+remain in input/missingness comparisons; at least one analyzed row is required.
+Predicted rows require usable feedback. Exported collision-suffixed prediction
+columns must be renamed to canonical names for uploaded monitoring CSVs; loading
+main results resolves field mappings automatically.
+
+The report includes:
+
+- **Prediction drift:** aligned counts and shares in the standard seven-emotion
+  order, percentage-point changes, and base-2 **Jensen–Shannon divergence**.
+  JSD ranges from 0 (identical distributions) to 1 (disjoint distributions).
+  This is divergence, not the square-root Jensen–Shannon distance.
+- **Confidence drift:** mean, median, quartiles, distributions, and low-confidence
+  counts/rates. Both datasets use one configurable threshold, initialized from
+  main analysis or the shared default. Uploaded low-confidence booleans are
+  recomputed. The empirical **Kolmogorov–Smirnov statistic** is the maximum CDF
+  difference (0–1), implemented with NumPy; no p-values are calculated.
+- **Data drift:** cleaned-text character/word means, medians, quartiles, and
+  distributions; shared course/subject/semester distributions; valid numeric
+  rating summaries/distributions; shared-column missingness rates. Categories
+  present in only one dataset remain visible with zero counts in the other.
+  Context percentages exclude missing values, while missingness uses all rows.
+  Invalid dates/ratings are excluded from numerical views, not treated as missing.
+- **Ambiguity:** the Phase 5 top-two margin definition (`< 0.10`) is applied only
+  when valid full class scores or confidence margins are available in both inputs.
+  Invalid/unavailable evidence produces an unavailable message, never a proxy.
+  Emotion-specific low-confidence/ambiguity rates require three predictions;
+  counts and support remain visible below that minimum.
+- **Temporal monitoring:** day/week/month volume, confidence, low-confidence
+  share, and emotion composition, using the existing temporal composition utility.
+  ISO dates are parsed in UTC; invalid dates are excluded and counted.
+
+Rules live in `MONITORING_THRESHOLDS` in `src/config.py`. Default JSD bands are
+minimal below 0.05, noticeable from 0.05, and substantial from 0.15. Review signals
+cover JSD ≥ 0.05, mean-confidence drop ≥ 0.05, low-confidence/missingness increase
+≥ 10 percentage points, absolute emotion-share change ≥ 10 percentage points, and
+absolute relative median word-length change ≥ 25%. Signals show observed values,
+thresholds, and units. Insights are deterministic descriptions of actual metrics;
+no LLM or causal explanations are used.
+
+**Drift severity thresholds are heuristic monitoring aids, not universal
+statistical guarantees.** Drift does not prove accuracy degradation. Prediction
+changes may reflect genuine changes in student feedback. Small datasets produce
+unstable drift estimates. Confidence is not calibrated accuracy. Longer feedback
+and individual emotions are not ranked as better or worse. Meaningful performance
+monitoring still requires labeled data and Phase 5 evaluation.
+
+Reference/current frames, source metadata, results, and inspection selections are
+isolated under the `monitoring` session state. Snapshots are independent copies and
+survive navigation and replacement of main analysis. Replacing one monitoring
+input invalidates its comparison and filters while preserving the other snapshot;
+invalid uploads preserve the previous valid selection and display an error.
+Changing the confidence threshold invalidates monitoring calculations only.
+Results are reused across unrelated reruns. **Snapshots are session-based** and
+are not durable history across app restarts. No database or background service
+has been added.
